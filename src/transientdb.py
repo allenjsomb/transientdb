@@ -1,6 +1,5 @@
 import asyncio
 import os
-from re import T
 import sqlite3
 import configparser
 import aiofiles
@@ -11,7 +10,6 @@ from sanic.log import logger
 from sanic.exceptions import SanicException
 from sanic.response import text
 from routes import database
-from aiocsv import AsyncDictReader
 from util.dbutil import dump_data, get_tables, load_data
 from setproctitle import setproctitle
 
