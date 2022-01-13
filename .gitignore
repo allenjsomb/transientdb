@@ -1,5 +1,11 @@
 /target
 venv
-*.py
+*.c
 *.lock
 .idea
+*.so
+build
+release
+schemas
+data
+__pycache__
