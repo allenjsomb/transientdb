@@ -99,9 +99,9 @@ async def count(request, dbname: str):
 
 @bp.get('/<dbname:str>')
 async def get_data(request, dbname: str):
-    sql = f'SELECT * FROM {dbname}'
-
-    if request.args:
+    sql = f'SELECT * FROM {dbname} LIMIT {request.args.get("offset")}, {request.args.get("limit")}'
+    logger.info(sql)
+    if False and request.args:
         sql += ' WHERE '
         sql += ' AND '.join([f'{k}=:{k}' for k in request.args.keys()])
 
