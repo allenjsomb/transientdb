@@ -164,13 +164,13 @@ func setupRouter(authToken string) *gin.Engine {
 	r.Use(gin.Recovery())
 	r.Use(limit.Limit(200))
 
+	r.GET("/table/:table", GetAllTableRecords(db))
+	r.GET("/table/:table/:field/:value", GetValueByField(db))
 	r.POST("/execute", Execute(db))
 	r.POST("/query", Query(db))
 	r.GET("/tables", GetTables(db))
 	r.GET("/count/:table", CountTableRecords(db))
 	r.GET("/vacuum", Vacuum(db))
-	r.GET("/:table", GetAllTableRecords(db))
-	r.GET("/:table/:field/:value", GetValueByField(db))
 
 	return r
 }
