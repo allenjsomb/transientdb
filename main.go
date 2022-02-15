@@ -71,10 +71,17 @@ func loadSchemas(schemaFolder string) {
 		}
 
 		text := string(content)
-		res := db.Exec(SqlObject{text, nil})
-		if !res.Success {
-			log.Error(res.Result)
-			continue
+		statements := strings.Split(text, ";")
+		for _, statement := range statements {
+			statement = strings.TrimSpace(statement)
+			if statement == "" {
+				continue
+			}
+			res := db.Exec(SqlObject{statement, nil})
+			if !res.Success {
+				log.Error(res.Result)
+				continue
+			}
 		}
 	}
 }
@@ -99,7 +106,7 @@ func loadData(dataFolder string) {
 
 			start := time.Now()
 
-			var maxSize int64 = 1000
+			var maxSize int64 = 500
 			var count int64 = 0
 			var headers []string
 			var params [][]interface{}
