@@ -31,6 +31,43 @@ func NewDatabase(dsn string) *Database {
 	}
 	return &Database{dsn, db, &sync.Mutex{}}
 }
+
+func (db *Database) ExecBatch(sql string, params [][]interface{}, count int64) Response {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	var rtn Response
+	rtn.Success = true
+
+	//log.Debugf("sql=%s count=%d", sql, count)
+	stmt, err := db.link.Prepare(sql)
+	if err != nil {
+		log.Error("PrepareBatch(...) ", err.Error())
+		rtn.Result = err.Error()
+		return rtn
+	}
+	defer stmt.Close()
+
+	var total int64 = 0
+	for row := range params[0:count] {
+		result, err := stmt.Exec(params[row]...)
+		if err != nil {
+			log.Errorf("ExecBatch(...) err=%s params=%+v", err.Error(), params[row])
+			continue
+		}
+
+		cnt, err := result.RowsAffected()
+		if err != nil {
+			log.Error("result.RowsAffected() ", err.Error())
+		} else {
+			total += cnt
+		}
+	}
+	rtn.Result = total
+
+	return rtn
+}
+
 func (db *Database) Exec(q SqlObject) Response {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()

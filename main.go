@@ -97,8 +97,14 @@ func loadData(dataFolder string) {
 
 			defer fp.Close()
 
-			var count = 0
+			start := time.Now()
+
+			var maxSize int64 = 1000
+			var count int64 = 0
 			var headers []string
+			var params [][]interface{}
+			var sql string = ""
+			var current int64 = 0
 			csvReader := csv.NewReader(fp)
 			for {
 				rec, err := csvReader.Read()
@@ -113,28 +119,52 @@ func loadData(dataFolder string) {
 				if headers == nil {
 					headers = rec
 					log.Debugf("%s headers=%+v", file.Name(), headers)
+					table := strings.TrimSuffix(filepath.Base(file.Name()), filepath.Ext(file.Name()))
+					places := make([]string, len(headers))
+					for i, _ := range headers {
+						places[i] = "?"
+					}
+					sql = "INSERT INTO " + table + " (" + strings.Join(headers, ",") + ") VALUES (" + strings.Join(places, ",") + ")"
+					params = make([][]interface{}, maxSize)
+					for i := range params {
+						params[i] = make([]interface{}, len(headers))
+					}
+					current = 0
 					continue
 				}
 
-				s := SqlObject{}
-				places := make([]string, len(rec))
-				s.Param = make([]interface{}, len(rec))
 				for i, v := range rec {
-					places[i] = "?"
-					s.Param[i] = v
+					params[current][i] = v
 				}
-				table := strings.TrimSuffix(filepath.Base(file.Name()), filepath.Ext(file.Name()))
-				s.Sql = "INSERT INTO " + table + " (" + strings.Join(headers, ",") + ") VALUES (" + strings.Join(places, ",") + ")"
 
-				res := db.Exec(s)
+				current += 1
+
+				if current%maxSize == 0 {
+					res := db.ExecBatch(sql, params, current)
+					if !res.Success {
+						log.Error(res.Result)
+						continue
+					}
+					count += res.Result.(int64)
+					params = make([][]interface{}, maxSize)
+					for i := range params {
+						params[i] = make([]interface{}, len(headers))
+					}
+					current = 0
+					continue
+				}
+			}
+
+			if 0 < current {
+				res := db.ExecBatch(sql, params, current)
 				if !res.Success {
 					log.Error(res.Result)
-					continue
 				}
-
-				count++
+				count += res.Result.(int64)
 			}
-			log.Infof("Loading of %s completed with %d records", file.Name(), count)
+
+			duration := time.Since(start)
+			log.Infof("Loading of %s completed with %d records in %s", file.Name(), count, duration.String())
 		}(file)
 	}
 }
