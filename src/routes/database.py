@@ -77,7 +77,7 @@ async def database(request, dbname: str):
     count = 0
     try:
         data = request.json
-        count = insert_dict(request.ctx.db, dbname, data)
+        count = insert_dict(request.ctx.db, dbname, data, upsert=request.args.get('upsert'))
     except Exception as e:
         logger.error(f'{request.method}: {request.path} -> {str(e)}')
 

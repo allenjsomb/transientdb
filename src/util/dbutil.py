@@ -4,7 +4,7 @@ from sanic.log import logger
 from aiocsv import AsyncDictReader, AsyncDictWriter
 
 
-def insert_dict(db, table, data):
+def insert_dict(db, table, data, upsert=None):
     try:
         cur = db.cursor()
         if not isinstance(data, (list, dict)):
@@ -15,6 +15,9 @@ def insert_dict(db, table, data):
 
         sql = f'INSERT OR REPLACE INTO {table} '
 
+        if upsert:
+            sql = f'INSERT INTO {table} '
+
         row = None
         if isinstance(data, list):
             if not isinstance(data[0], dict):
@@ -24,7 +27,11 @@ def insert_dict(db, table, data):
             row = data
 
         sql += '(' + ','.join(row.keys()) + ') '
-        sql += 'VALUES (' + ','.join([f':{k}' for k in row.keys()]) + ')'
+        sql += 'VALUES (' + ','.join([f':{k}' for k in row.keys()]) + ') '
+
+        if upsert:
+            sql += f'ON CONFLICT({upsert}) DO UPDATE SET ' + ','.join([f'{k}=:{k}' for k in row.keys()])
+
         return cur.executemany(sql, data if isinstance(data, list) else [data]).rowcount
     except Exception as e:
         logger.error(f'sql={sql} err={str(e)}')
